@@ -2,12 +2,10 @@ package core
 
 // LuhnValid checks credit card number is valid.
 func LuhnValid(creditCardNumber int64) bool {
-	lastDigit := creditCardNumber % 10
-	remainingDigits := creditCardNumber / 10
-
 	var checksum int64
+	remainingDigits := creditCardNumber
 
-	for i := 0; remainingDigits > 0; i++ {
+	for i := 1; remainingDigits > 0; i++ {
 		currentDigit := remainingDigits % 10
 
 		if i%2 == 0 {
@@ -20,8 +18,6 @@ func LuhnValid(creditCardNumber int64) bool {
 		checksum += currentDigit
 		remainingDigits /= 10
 	}
-	checksum %= 10
 
-	result := (lastDigit + checksum) % 10
-	return result == 0
+	return (checksum % 10) == 0
 }
