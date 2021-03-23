@@ -25,3 +25,24 @@ func TestLuhnValid(t *testing.T) {
 		})
 	}
 }
+
+func TestCardExpiryValid(t *testing.T) {
+	tests := map[string]struct {
+		year           int
+		month          int
+		expectedOutput bool
+	}{
+		"date 1": {year: 2000, month: 10, expectedOutput: false},
+		"date 2": {year: 3000, month: 4, expectedOutput: true},
+		"date 3": {year: -100, month: 1, expectedOutput: false},
+		"date 4": {year: 2000, month: 15, expectedOutput: false},
+		"date 5": {year: 2000, month: 0, expectedOutput: false},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			value := core.CardExpiryValid(test.year, test.month)
+			assert.Equal(t, test.expectedOutput, value)
+		})
+	}
+}
