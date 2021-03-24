@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/api"
+	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/api/middleware"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core"
 )
 
@@ -60,6 +61,11 @@ func (s *Server) AuthoriseTransaction(c *gin.Context) {
 	// validate currency
 
 	// make external request to payment processor
+
+	// Get merchant_name
+	merchantName := c.MustGet(middleware.AuthUserKey).(string)
+
+	_ = merchantName
 
 	// Store in DB
 

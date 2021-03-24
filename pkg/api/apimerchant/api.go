@@ -18,13 +18,18 @@ type Server struct {
 	Logger log.Logger
 	Repo   core.Repository
 
+	AuthServiceHost string
+	AuthServicePort int
+
 	Router     *gin.Engine
 	HTTPServer http.Server
+	HTTPClient *http.Client
 }
 
 // NewServer creates a new server.
-func NewServer(addr string, port int, devMode bool, logger log.Logger, repo core.Repository) *Server {
-	s := &Server{Logger: logger, Repo: repo}
+func NewServer(addr string, port int, devMode bool, logger log.Logger, repo core.Repository, httpClient *http.Client,
+	authServiceHost string, authServicePort int) *Server {
+	s := &Server{Logger: logger, Repo: repo, HTTPClient: httpClient, AuthServiceHost: authServiceHost, AuthServicePort: authServicePort}
 
 	if !devMode {
 		gin.SetMode(gin.ReleaseMode)
@@ -58,10 +63,12 @@ func (s *Server) setupRoutes(devMode bool) {
 	s.Router.NoRoute(api.NoRoute)
 	v1 := s.Router.Group("/api/v1")
 
-	v1.POST("/authorise", s.AuthoriseTransaction)
-	v1.POST("/capture", s.CaptureTransaction)
-	v1.POST("/refund", s.RefundTransaction)
-	v1.POST("/void", s.VoidTransaction)
+	basicAuthMW := middleware.GinBasicAuth(s.Logger, s.HTTPClient, s.AuthServiceHost, s.AuthServicePort)
+
+	v1.POST("/authorise", basicAuthMW, s.AuthoriseTransaction)
+	v1.POST("/capture", basicAuthMW, s.CaptureTransaction)
+	v1.POST("/refund", basicAuthMW, s.RefundTransaction)
+	v1.POST("/void", basicAuthMW, s.VoidTransaction)
 
 }
 

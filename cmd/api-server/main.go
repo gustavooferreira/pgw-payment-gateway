@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/api/apimerchant"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/api/apimgmt"
@@ -46,7 +48,12 @@ func mainLogic() int {
 	}
 	defer db.Close()
 
-	serverMerchant := apimerchant.NewServer(config.WebserverMerchant.Host, config.WebserverMerchant.Port, config.Options.DevMode, logger, db)
+	httpClient := &http.Client{
+		Timeout: time.Second * time.Duration(config.AuthService.Timeout),
+	}
+
+	serverMerchant := apimerchant.NewServer(config.WebserverMerchant.Host, config.WebserverMerchant.Port, config.Options.DevMode,
+		logger, db, httpClient, config.AuthService.Host, config.AuthService.Port)
 	serverMgmt := apimgmt.NewServer(config.WebserverMgmt.Host, config.WebserverMgmt.Port, config.Options.DevMode, logger, db)
 
 	// Spawn SIGINT listener

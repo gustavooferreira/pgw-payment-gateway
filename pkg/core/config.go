@@ -19,6 +19,8 @@ type Configuration struct {
 	WebserverMgmt     WebserverConfiguration
 	Options           OptionsConfiguration
 	Database          DatabaseConfiguration
+	AuthService       AuthServiceConfiguration
+	PProcessorService PaymentProcessorServiceConfiguration
 }
 
 // WebserverConfiguration holds configuration related to the webserver
@@ -43,6 +45,20 @@ type DatabaseConfiguration struct {
 	Username string
 	Password string
 	DBName   string
+}
+
+// AuthServiceConfiguration holds configuration related to the authentication system
+type AuthServiceConfiguration struct {
+	Host    string
+	Port    int
+	Timeout int
+}
+
+// PaymentProcessorServiceConfiguration holds configuration related to the payment processor system
+type PaymentProcessorServiceConfiguration struct {
+	Host    string
+	Port    int
+	Timeout int
 }
 
 // NewConfig returns new default configuration
@@ -121,6 +137,46 @@ func (config *Configuration) LoadConfig() (err error) {
 		return fmt.Errorf("configuration error: [database dbname] mandatory config parameter missing")
 	}
 
+	if authHost, ok := os.LookupEnv(AppPrefix + "_AUTHSERVICE_HOST"); ok {
+		config.AuthService.Host = authHost
+	} else {
+		return fmt.Errorf("configuration error: [authservice host] mandatory config parameter missing")
+	}
+
+	if authPort, ok := os.LookupEnv(AppPrefix + "_AUTHSERVICE_PORT"); ok {
+		config.AuthService.Port, err = strconv.Atoi(authPort)
+		if err != nil || config.AuthService.Port <= 0 || config.AuthService.Port > 1<<16-1 {
+			return fmt.Errorf("configuration error: [authservice port] input not allowed <%s>", authPort)
+		}
+	}
+
+	if authTimeout, ok := os.LookupEnv(AppPrefix + "_AUTHSERVICE_TIMEOUT"); ok {
+		config.AuthService.Timeout, err = strconv.Atoi(authTimeout)
+		if err != nil || config.AuthService.Timeout <= 0 {
+			return fmt.Errorf("configuration error: [authservice timeout] input not allowed <%s>", authTimeout)
+		}
+	}
+
+	if pprocessorHost, ok := os.LookupEnv(AppPrefix + "_PPROCESSORSERVICE_HOST"); ok {
+		config.PProcessorService.Host = pprocessorHost
+	} else {
+		return fmt.Errorf("configuration error: [pprocessor host] mandatory config parameter missing")
+	}
+
+	if pprocessorPort, ok := os.LookupEnv(AppPrefix + "_PPROCESSORSERVICE_PORT"); ok {
+		config.PProcessorService.Port, err = strconv.Atoi(pprocessorPort)
+		if err != nil || config.PProcessorService.Port <= 0 || config.PProcessorService.Port > 1<<16-1 {
+			return fmt.Errorf("configuration error: [pprocessor port] input not allowed <%s>", pprocessorPort)
+		}
+	}
+
+	if pprocessorTimeout, ok := os.LookupEnv(AppPrefix + "_PPROCESSORSERVICE_TIMEOUT"); ok {
+		config.PProcessorService.Timeout, err = strconv.Atoi(pprocessorTimeout)
+		if err != nil || config.PProcessorService.Timeout <= 0 {
+			return fmt.Errorf("configuration error: [pprocessor timeout] input not allowed <%s>", pprocessorTimeout)
+		}
+	}
+
 	return nil
 }
 
@@ -140,6 +196,14 @@ func (config *Configuration) setDefaults() {
 
 	// Database
 	config.Database.Port = 3306
+
+	//AuthService
+	config.AuthService.Port = 8080
+	config.AuthService.Timeout = 5
+
+	//PaymentProcessorService
+	config.PProcessorService.Port = 8080
+	config.PProcessorService.Timeout = 5
 }
 
 // ParseLogLevel parses a string and returns a log level enum.

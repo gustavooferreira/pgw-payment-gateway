@@ -10,6 +10,7 @@ import (
 type Repository interface {
 	GetAllAuthorisations() []entities.Authorisation
 	GetAuthorisation() entities.Authorisation
+	HealthCheck() error
 }
 
 // ShutDowner represents anything that can be shutdown like an HTTP server.

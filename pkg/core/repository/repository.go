@@ -23,16 +23,6 @@ func NewDatabase(host string, port int, username string, password string, dbname
 
 	// TODO: Setup logger for gorm here
 
-	sqlDB, err := dbconn.DB()
-	if err != nil {
-		return nil, err
-	}
-
-	err = sqlDB.Ping()
-	if err != nil {
-		return nil, err
-	}
-
 	// Check currency existance
 
 	// Check if returns RecordNotFound error
@@ -69,6 +59,20 @@ func (db *Database) Close() error {
 	}
 
 	return sqlDB.Close()
+}
+
+func (db *Database) HealthCheck() error {
+	sqlDB, err := db.connection.DB()
+	if err != nil {
+		return err
+	}
+
+	err = sqlDB.Ping()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (db *Database) GetAllAuthorisations() []entities.Authorisation {

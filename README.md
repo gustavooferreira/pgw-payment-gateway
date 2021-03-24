@@ -55,7 +55,7 @@ docker run --rm --name pgw-payment-gateway-service -p 127.0.0.1:9000:8080/tcp pg
 Once the container is running, you can make a request like this:
 
 ```bash
-curl -i -X POST http://localhost:9000/api/v1/authorise -d '{"credit_card": {"name":"customer1", "number": 4000000000000001, "expiry_month":10, "expiry_year":2030, "cvv":123}, "currency": "EUR", "amount": 10.50}'
+curl -i -X POST -u bill:pass1 http://localhost:9000/api/v1/authorise -d '{"credit_card": {"name":"customer1", "number": 4000000000000001, "expiry_month":10, "expiry_year":2030, "cvv":123}, "currency": "EUR", "amount": 10.50}'
 ```
 
 # Design

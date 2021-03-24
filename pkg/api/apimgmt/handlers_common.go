@@ -1,10 +1,18 @@
 package apimgmt
 
-import "github.com/gin-gonic/gin"
+import (
+	"fmt"
+
+	"github.com/gin-gonic/gin"
+)
 
 // Healthcheck checks health of the service.
 func (s *Server) Healthcheck(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"status": "OK",
-	})
+	err := s.Repo.HealthCheck()
+	if err != nil {
+		s.Logger.Error(fmt.Sprintf("database health check error: %s", err.Error()))
+		c.JSON(500, gin.H{"status": "FAIL"})
+	}
+
+	c.JSON(200, gin.H{"status": "OK"})
 }
