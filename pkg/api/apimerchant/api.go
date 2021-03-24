@@ -15,8 +15,9 @@ import (
 
 // Server is the webserver environment, which holds all its dependencies.
 type Server struct {
-	Logger log.Logger
-	Repo   core.Repository
+	Logger     log.Logger
+	Repo       core.Repository
+	PProcessor core.PaymentProcessor
 
 	AuthServiceHost string
 	AuthServicePort int
@@ -27,9 +28,11 @@ type Server struct {
 }
 
 // NewServer creates a new server.
-func NewServer(addr string, port int, devMode bool, logger log.Logger, repo core.Repository, httpClient *http.Client,
-	authServiceHost string, authServicePort int) *Server {
-	s := &Server{Logger: logger, Repo: repo, HTTPClient: httpClient, AuthServiceHost: authServiceHost, AuthServicePort: authServicePort}
+func NewServer(addr string, port int, devMode bool, authServiceHost string, authServicePort int,
+	logger log.Logger, httpClient *http.Client, repo core.Repository, pproc core.PaymentProcessor) *Server {
+	s := &Server{Logger: logger, Repo: repo, HTTPClient: httpClient,
+		AuthServiceHost: authServiceHost, AuthServicePort: authServicePort,
+		PProcessor: pproc}
 
 	if !devMode {
 		gin.SetMode(gin.ReleaseMode)

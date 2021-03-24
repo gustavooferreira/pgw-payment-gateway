@@ -11,6 +11,7 @@ import (
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/api/apimgmt"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core/log"
+	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core/pprocessor"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core/repository"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/lifecycle"
 )
@@ -40,7 +41,7 @@ func mainLogic() int {
 	// logger.SetLevel(config.Options.LogLevel)
 
 	// Setup Database
-	db, err := repository.NewDatabase(config.Database.Host, config.Database.Port,
+	db, err := repository.NewDatabaseService(config.Database.Host, config.Database.Port,
 		config.Database.Username, config.Database.Password, config.Database.DBName)
 	if err != nil {
 		logger.Error(fmt.Sprintf("database error: %s", err.Error()), log.Field("type", "setup"))
@@ -49,11 +50,15 @@ func mainLogic() int {
 	defer db.Close()
 
 	httpClient := &http.Client{
-		Timeout: time.Second * time.Duration(config.AuthService.Timeout),
+		Timeout: time.Second * time.Duration(config.Options.HTTPClientTimeout),
 	}
 
+	// Setup Payment processor service
+	pprocservice := pprocessor.NewClient(config.PProcessorService.Host, config.PProcessorService.Port, httpClient)
+
 	serverMerchant := apimerchant.NewServer(config.WebserverMerchant.Host, config.WebserverMerchant.Port, config.Options.DevMode,
-		logger, db, httpClient, config.AuthService.Host, config.AuthService.Port)
+		config.AuthService.Host, config.AuthService.Port,
+		logger, httpClient, db, pprocservice)
 	serverMgmt := apimgmt.NewServer(config.WebserverMgmt.Host, config.WebserverMgmt.Port, config.Options.DevMode, logger, db)
 
 	// Spawn SIGINT listener

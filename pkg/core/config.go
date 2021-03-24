@@ -35,7 +35,8 @@ type OptionsConfiguration struct {
 	// and also, enables pprof
 	DevMode bool
 
-	LogLevel log.Level
+	LogLevel          log.Level
+	HTTPClientTimeout int
 }
 
 // DatabaseConfiguration holds configuration related to the database holding users credentials
@@ -49,16 +50,14 @@ type DatabaseConfiguration struct {
 
 // AuthServiceConfiguration holds configuration related to the authentication system
 type AuthServiceConfiguration struct {
-	Host    string
-	Port    int
-	Timeout int
+	Host string
+	Port int
 }
 
 // PaymentProcessorServiceConfiguration holds configuration related to the payment processor system
 type PaymentProcessorServiceConfiguration struct {
-	Host    string
-	Port    int
-	Timeout int
+	Host string
+	Port int
 }
 
 // NewConfig returns new default configuration
@@ -106,6 +105,13 @@ func (config *Configuration) LoadConfig() (err error) {
 		}
 	}
 
+	if httpClientTimeout, ok := os.LookupEnv(AppPrefix + "_OPTIONS_HTTPCLIENTTIMEOUT"); ok {
+		config.Options.HTTPClientTimeout, err = strconv.Atoi(httpClientTimeout)
+		if err != nil || config.Options.HTTPClientTimeout <= 0 {
+			return fmt.Errorf("configuration error: [options httpclienttimeout] input not allowed <%s>", httpClientTimeout)
+		}
+	}
+
 	if dbHost, ok := os.LookupEnv(AppPrefix + "_DATABASE_HOST"); ok {
 		config.Database.Host = dbHost
 	} else {
@@ -150,13 +156,6 @@ func (config *Configuration) LoadConfig() (err error) {
 		}
 	}
 
-	if authTimeout, ok := os.LookupEnv(AppPrefix + "_AUTHSERVICE_TIMEOUT"); ok {
-		config.AuthService.Timeout, err = strconv.Atoi(authTimeout)
-		if err != nil || config.AuthService.Timeout <= 0 {
-			return fmt.Errorf("configuration error: [authservice timeout] input not allowed <%s>", authTimeout)
-		}
-	}
-
 	if pprocessorHost, ok := os.LookupEnv(AppPrefix + "_PPROCESSORSERVICE_HOST"); ok {
 		config.PProcessorService.Host = pprocessorHost
 	} else {
@@ -167,13 +166,6 @@ func (config *Configuration) LoadConfig() (err error) {
 		config.PProcessorService.Port, err = strconv.Atoi(pprocessorPort)
 		if err != nil || config.PProcessorService.Port <= 0 || config.PProcessorService.Port > 1<<16-1 {
 			return fmt.Errorf("configuration error: [pprocessor port] input not allowed <%s>", pprocessorPort)
-		}
-	}
-
-	if pprocessorTimeout, ok := os.LookupEnv(AppPrefix + "_PPROCESSORSERVICE_TIMEOUT"); ok {
-		config.PProcessorService.Timeout, err = strconv.Atoi(pprocessorTimeout)
-		if err != nil || config.PProcessorService.Timeout <= 0 {
-			return fmt.Errorf("configuration error: [pprocessor timeout] input not allowed <%s>", pprocessorTimeout)
 		}
 	}
 
@@ -193,17 +185,16 @@ func (config *Configuration) setDefaults() {
 	// Options
 	config.Options.DevMode = false
 	config.Options.LogLevel = log.INFO
+	config.Options.HTTPClientTimeout = 5
 
 	// Database
 	config.Database.Port = 3306
 
 	//AuthService
 	config.AuthService.Port = 8080
-	config.AuthService.Timeout = 5
 
 	//PaymentProcessorService
 	config.PProcessorService.Port = 8080
-	config.PProcessorService.Timeout = 5
 }
 
 // ParseLogLevel parses a string and returns a log level enum.

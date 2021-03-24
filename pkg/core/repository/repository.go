@@ -3,57 +3,37 @@ package repository
 import (
 	"fmt"
 
-	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core/entities"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 type Database struct {
-	connection *gorm.DB
+	conn *gorm.DB
 }
 
 func NewDatabase(host string, port int, username string, password string, dbname string) (*Database, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		username, password, host, port, dbname)
 
+	// dbconn, err := gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	dbconn, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 
+	// create session
+	dbconn = dbconn.Session(&gorm.Session{})
+	dbconn = dbconn.Debug()
+
 	// TODO: Setup logger for gorm here
 
-	// Check currency existance
-
-	// Check if returns RecordNotFound error
-	// var currencyResult entities.Currency
-	// currency := entities.Currency{Name: "EUR"}
-	// result := dbconn.Where(&currency).Take(&currencyResult)
-	// if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-	// 	fmt.Println("not found")
-	// } else if result.Error != nil {
-	// 	fmt.Println("Some error")
-	// } else {
-	// 	fmt.Println("match found!")
-	// }
-
-	// auth := entities.Authorisation{ID: "aaa-bbb-ccc", State: entities.State{Name: "Authorised"},
-	// 	Currency: entities.Currency{Name: "EUR"}, Amount: 10.50, MerchantName: "yolo Merchant"}
-
-	// cc := entities.CreditCard{Number: 111, Name: "customer1", ExpiryMonth: 10, ExpiryYear: 2050, CVV: 123,
-	// 	Authorisations: []entities.Authorisation{auth}}
-
-	// result = dbconn.Create(&cc)
-	// fmt.Println(result.Error)
-	// fmt.Println(result.RowsAffected)
-
-	db := Database{connection: dbconn}
+	db := Database{conn: dbconn}
 
 	return &db, nil
 }
 
 func (db *Database) Close() error {
-	sqlDB, err := db.connection.DB()
+	sqlDB, err := db.conn.DB()
 	if err != nil {
 		return err
 	}
@@ -62,7 +42,7 @@ func (db *Database) Close() error {
 }
 
 func (db *Database) HealthCheck() error {
-	sqlDB, err := db.connection.DB()
+	sqlDB, err := db.conn.DB()
 	if err != nil {
 		return err
 	}
@@ -75,12 +55,53 @@ func (db *Database) HealthCheck() error {
 	return nil
 }
 
-func (db *Database) GetAllAuthorisations() []entities.Authorisation {
-
-	return make([]entities.Authorisation, 1, 1)
+func (db *Database) GetCurrencyID(currency string) (uint64, error) {
+	var currencyResult Currency
+	result := db.conn.Where(&Currency{Name: currency}).Take(&currencyResult)
+	return currencyResult.ID, result.Error
 }
 
-func (db *Database) GetAuthorisation() entities.Authorisation {
+func (db *Database) GetStateID(state string) (uint64, error) {
+	var stateResult State
+	result := db.conn.Where(&State{Name: state}).Take(&stateResult)
+	return stateResult.ID, result.Error
+}
 
-	return entities.Authorisation{}
+func (db *Database) GetCreditCardDetails(number uint64) (CreditCard, error) {
+	var creditcardResult CreditCard
+	result := db.conn.Where(&CreditCard{Number: number}).Take(&creditcardResult)
+	return creditcardResult, result.Error
+}
+
+func (db *Database) GetAuthorisationRecord(authID string) (Authorisation, error) {
+	var authResult Authorisation
+	result := db.conn.Preload("State").Preload("Currency").Where(&Authorisation{ID: authID}).Take(&authResult)
+	return authResult, result.Error
+}
+
+func (db *Database) UpdateAuthorisationRecord(authID string, stateID uint64) error {
+	result := db.conn.Model(&Authorisation{ID: authID}).Update("state", stateID)
+	return result.Error
+}
+
+func (db *Database) FindAllAuthorisationRecords() ([]Authorisation, error) {
+	var authResults []Authorisation
+	result := db.conn.Preload("State").Preload("Currency").Find(&authResults)
+	return authResults, result.Error
+}
+
+func (db *Database) InsertAuthorisationRecord(authRecord Authorisation) error {
+	result := db.conn.Create(&authRecord)
+	return result.Error
+}
+
+func (db *Database) InsertCreditCardRecord(ccRecord CreditCard) error {
+	result := db.conn.Create(&ccRecord)
+	return result.Error
+}
+
+func (db *Database) FindAllTransactionRecords(authID string) ([]Transaction, error) {
+	var transactionResults []Transaction
+	result := db.conn.Where(&Authorisation{ID: authID}).Find(&transactionResults)
+	return transactionResults, result.Error
 }

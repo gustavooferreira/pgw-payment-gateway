@@ -1,24 +1,42 @@
 package apimgmt
 
 import (
-	"fmt"
-
 	"github.com/gin-gonic/gin"
+	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/api"
+	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core/repository"
 )
 
 // GetAuthorisations returns all authorisations from the database.
 func (s *Server) GetAuthorisations(c *gin.Context) {
 
-	// reply with all authorisations
+	authList, err := s.Repo.GetAllAuthorisations()
+	if err != nil {
+		s.Logger.Error(err.Error())
+		api.RespondWithError(c, 500, "Internal error")
+		return
+	}
 
-	c.JSON(200, gin.H{"authKey": "authValue"})
+	c.JSON(200, authList)
 }
 
 // GetAuthorisation returns a detailed authorisation.
 func (s *Server) GetAuthorisation(c *gin.Context) {
 	authID := c.Param("authID")
-	fmt.Println("Auth ID:", authID)
-	// reply with a detailed authorisation
 
-	c.JSON(200, gin.H{"authKey": "authValue"})
+	authDetails, err := s.Repo.GetAuthorisationDetails(authID)
+	if e, ok := err.(*repository.DBServiceError); ok {
+		if e.NotFound {
+			api.RespondWithError(c, 404, err.Error())
+			return
+		}
+		s.Logger.Error(err.Error())
+		api.RespondWithError(c, 500, "Internal error")
+		return
+	} else if err != nil {
+		s.Logger.Error(err.Error())
+		api.RespondWithError(c, 500, "Internal error")
+		return
+	}
+
+	c.JSON(200, authDetails)
 }

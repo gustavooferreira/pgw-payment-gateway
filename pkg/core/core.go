@@ -3,8 +3,8 @@ package core
 import "time"
 
 // LuhnValid checks credit card number is valid.
-func LuhnValid(creditCardNumber int64) bool {
-	var checksum int64
+func LuhnValid(creditCardNumber uint64) bool {
+	var checksum uint64
 	remainingDigits := creditCardNumber
 
 	for i := 1; remainingDigits > 0; i++ {
@@ -24,14 +24,14 @@ func LuhnValid(creditCardNumber int64) bool {
 	return (checksum % 10) == 0
 }
 
-func CardExpiryValid(year int, month int) bool {
-	if year < 0 || month < 1 || month > 12 {
+func CardExpiryValid(year uint, month uint) bool {
+	if month > 12 {
 		return false
 	}
 
 	now := time.Now()
-	nowYear := now.Year()
-	nowMonth := int(now.Month())
+	nowYear := uint(now.Year())
+	nowMonth := uint(now.Month())
 
 	if year < nowYear {
 		return false
