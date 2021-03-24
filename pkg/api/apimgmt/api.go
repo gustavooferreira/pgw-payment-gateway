@@ -34,7 +34,7 @@ func NewServer(addr string, port int, devMode bool, logger log.Logger, repo core
 	s.Router = gin.New()
 
 	s.Router.Use(
-		middleware.GinReqLogger(logger, time.RFC3339, "request served", "http-router-mux"),
+		middleware.GinReqLogger(logger, time.RFC3339, "request served by management API", "http-router-mux"),
 	)
 	if !devMode {
 		s.Router.Use(gin.Recovery())
@@ -60,7 +60,8 @@ func (s *Server) setupRoutes(devMode bool) {
 	v1 := s.Router.Group("/api/v1")
 	v1.GET("/healthcheck", s.Healthcheck)
 
-	// v1.POST("/auth", s.ValidateUser)
+	v1.GET("/authorisations", s.GetAuthorisations)
+	v1.GET("/authorisations/:authID", s.GetAuthorisation)
 
 	// Profiler
 	// URL: https://<IP>:<PORT>/debug/pprof/

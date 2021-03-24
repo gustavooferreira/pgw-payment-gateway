@@ -9,6 +9,7 @@ import (
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/api/apimgmt"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core/log"
+	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core/repository"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/lifecycle"
 )
 
@@ -37,44 +38,57 @@ func mainLogic() int {
 	// logger.SetLevel(config.Options.LogLevel)
 
 	// Setup Database
+	db, err := repository.NewDatabase(config.Database.Host, config.Database.Port,
+		config.Database.Username, config.Database.Password, config.Database.DBName)
+	if err != nil {
+		logger.Error(fmt.Sprintf("database error: %s", err.Error()), log.Field("type", "setup"))
+		return 1
+	}
+	defer db.Close()
 
-	serverMerchant := apimerchant.NewServer(config.WebserverMerchant.Host, config.WebserverMerchant.Port, config.Options.DevMode, logger, nil)
-	serverMgmt := apimgmt.NewServer(config.WebserverMgmt.Host, config.WebserverMgmt.Port, config.Options.DevMode, logger, nil)
+	serverMerchant := apimerchant.NewServer(config.WebserverMerchant.Host, config.WebserverMerchant.Port, config.Options.DevMode, logger, db)
+	serverMgmt := apimgmt.NewServer(config.WebserverMgmt.Host, config.WebserverMgmt.Port, config.Options.DevMode, logger, db)
 
 	// Spawn SIGINT listener
 	go lifecycle.TerminateHandler(logger, serverMerchant, serverMgmt)
 
+	errSignal := make(chan struct{}, 2)
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go RunMerchantWebserver(logger, &wg, serverMerchant)
-	go RunMgmtWebserver(logger, &wg, serverMgmt)
+	go RunMerchantWebserver(logger, serverMerchant, &wg, errSignal)
+	go RunMgmtWebserver(logger, serverMgmt, &wg, errSignal)
 
 	// Wait here for both web servers to return
 	wg.Wait()
 
-	// Handle case when it crashes. Add a chan of ints or errors to return 1
-
-	logger.Info("APP gracefully terminated")
-	return 0
-}
-
-func RunMerchantWebserver(logger log.Logger, wg *sync.WaitGroup, serverMerchant *apimerchant.Server) {
-	defer wg.Done()
-
-	logger.Info("listenning for incoming requests", log.Field("type", "setup"))
-	err := serverMerchant.ListenAndServe()
-	if err != nil {
-		logger.Error(fmt.Sprintf("unexpected error while serving HTTP: %s", err))
+	select {
+	case <-errSignal:
+		return 1
+	default:
+		logger.Info("APP gracefully terminated")
+		return 0
 	}
 }
 
-func RunMgmtWebserver(logger log.Logger, wg *sync.WaitGroup, serverMgmt *apimgmt.Server) {
+func RunMerchantWebserver(logger log.Logger, serverMerchant *apimerchant.Server, wg *sync.WaitGroup, errSignal chan struct{}) {
 	defer wg.Done()
 
-	logger.Info("listenning for incoming requests", log.Field("type", "setup"))
+	logger.Info("listenning for incoming requests on apimerchant", log.Field("type", "setup"))
+	err := serverMerchant.ListenAndServe()
+	if err != nil {
+		logger.Error(fmt.Sprintf("unexpected error while serving HTTP on apimerchant: %s", err))
+		errSignal <- struct{}{}
+	}
+}
+
+func RunMgmtWebserver(logger log.Logger, serverMgmt *apimgmt.Server, wg *sync.WaitGroup, errSignal chan struct{}) {
+	defer wg.Done()
+
+	logger.Info("listenning for incoming requests on apimgmt", log.Field("type", "setup"))
 	err := serverMgmt.ListenAndServe()
 	if err != nil {
-		logger.Error(fmt.Sprintf("unexpected error while serving HTTP: %s", err))
+		logger.Error(fmt.Sprintf("unexpected error while serving HTTP on apimgmt: %s", err))
+		errSignal <- struct{}{}
 	}
 }

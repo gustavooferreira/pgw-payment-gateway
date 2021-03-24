@@ -1,9 +1,15 @@
 package core
 
-import "context"
+import (
+	"context"
 
-// Repository represents a database holding credentials
+	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/core/entities"
+)
+
+// Repository represents a database holding the data
 type Repository interface {
+	GetAllAuthorisations() []entities.Authorisation
+	GetAuthorisation() entities.Authorisation
 }
 
 // ShutDowner represents anything that can be shutdown like an HTTP server.

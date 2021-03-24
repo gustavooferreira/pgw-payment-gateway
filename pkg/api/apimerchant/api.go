@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/api"
 	"github.com/gustavooferreira/pgw-payment-gateway-service/pkg/api/middleware"
@@ -34,7 +33,7 @@ func NewServer(addr string, port int, devMode bool, logger log.Logger, repo core
 	s.Router = gin.New()
 
 	s.Router.Use(
-		middleware.GinReqLogger(logger, time.RFC3339, "request served", "http-router-mux"),
+		middleware.GinReqLogger(logger, time.RFC3339, "request served by merchant API", "http-router-mux"),
 	)
 	if !devMode {
 		s.Router.Use(gin.Recovery())
@@ -58,16 +57,12 @@ func NewServer(addr string, port int, devMode bool, logger log.Logger, repo core
 func (s *Server) setupRoutes(devMode bool) {
 	s.Router.NoRoute(api.NoRoute)
 	v1 := s.Router.Group("/api/v1")
-	v1.GET("/healthcheck", s.Healthcheck)
 
-	// v1.POST("/auth", s.ValidateUser)
+	v1.POST("/authorise", s.AuthoriseTransaction)
+	v1.POST("/capture", s.CaptureTransaction)
+	v1.POST("/refund", s.RefundTransaction)
+	v1.POST("/void", s.VoidTransaction)
 
-	// Profiler
-	// URL: https://<IP>:<PORT>/debug/pprof/
-	if devMode {
-		s.Logger.Info("activating pprof (devmode on)", log.Field("type", "debug"))
-		pprof.Register(s.Router)
-	}
 }
 
 // ListenAndServe listens and serves incoming requests.

@@ -59,3 +59,35 @@ curl -i -X POST http://localhost:9000/api/v1/authorise -d '{"credit_card": {"nam
 ```
 
 # Design
+
+## MySQL tables
+
+Table `credit_cards`:
+
+| Field        | Type        |
+| ------------ | ----------- |
+| number       | bigint      |
+| name         | varchar(40) |
+| expiry_month | bigint      |
+| expiry_year  | bigint      |
+| cvv          | bigint      |
+
+Table `authorisations`:
+
+| Field              | Type        |
+| ------------------ | ----------- |
+| uid                | varchar(50) |
+| amount             | double      |
+| currency           | longtext    |
+| state              | longtext    |
+| merchant_name      | longtext    |
+| credit_card_number | bigint      |
+
+Table `transactions`:
+
+| Field             | Type            |
+| ----------------- | --------------- |
+| id                | bigint unsigned |
+| amount            | double          |
+| type              | varchar(20)     |
+| authorisation_uid | varchar(50)     |
