@@ -12,8 +12,9 @@ type Repository interface {
 	HealthCheck() error
 	Close() error
 	CurrencyExists(currency string) (bool, error)
-	AddAuthorisation(entities.Authorisation) error
-
+	AddAuthorisation(auth entities.Authorisation) error
+	AddTransaction(authID string, transaction entities.Transaction) error
+	UpdateAuthorisationState(authID string, state string) error
 	GetAllAuthorisations() ([]entities.Authorisation, error)
 	GetAuthorisationDetails(authID string) (entities.Authorisation, error)
 }

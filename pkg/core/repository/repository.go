@@ -79,8 +79,8 @@ func (db *Database) GetAuthorisationRecord(authID string) (Authorisation, error)
 	return authResult, result.Error
 }
 
-func (db *Database) UpdateAuthorisationRecord(authID string, stateID uint64) error {
-	result := db.conn.Model(&Authorisation{ID: authID}).Update("state", stateID)
+func (db *Database) UpdateAuthorisationState(authID string, stateID uint64) error {
+	result := db.conn.Model(&Authorisation{ID: authID}).Update("state_id", stateID)
 	return result.Error
 }
 
@@ -102,6 +102,11 @@ func (db *Database) InsertCreditCardRecord(ccRecord CreditCard) error {
 
 func (db *Database) FindAllTransactionRecords(authID string) ([]Transaction, error) {
 	var transactionResults []Transaction
-	result := db.conn.Where(&Authorisation{ID: authID}).Find(&transactionResults)
+	result := db.conn.Where(&Transaction{AuthorisationID: authID}).Find(&transactionResults)
 	return transactionResults, result.Error
+}
+
+func (db *Database) InsertTransactionRecord(transRecord Transaction) error {
+	result := db.conn.Create(&transRecord)
+	return result.Error
 }

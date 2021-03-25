@@ -200,5 +200,51 @@ func (dbs *DatabaseService) GetAuthorisationDetails(authID string) (authItem ent
 		transactionsList = append(transactionsList, transItem)
 	}
 
+	authItem.Transaction = transactionsList
+
 	return authItem, nil
+}
+
+func (dbs *DatabaseService) AddTransaction(authID string, transaction entities.Transaction) error {
+	state := "Captured"
+	if transaction.Type == "Refund" {
+		state = "Refunded"
+	}
+
+	stateID, err := dbs.Database.GetStateID(state)
+	if err != nil {
+		return &DBServiceError{Msg: "database error", Err: err}
+	}
+
+	err = dbs.Database.UpdateAuthorisationState(authID, stateID)
+	if err != nil {
+		return &DBServiceError{Msg: "database error", Err: err}
+	}
+
+	transRecord := Transaction{
+		Type:            transaction.Type,
+		Amount:          transaction.Amount,
+		AuthorisationID: authID,
+	}
+
+	err = dbs.Database.InsertTransactionRecord(transRecord)
+	if err != nil {
+		return &DBServiceError{Msg: "database error", Err: err}
+	}
+
+	return nil
+}
+
+func (dbs *DatabaseService) UpdateAuthorisationState(authID string, state string) error {
+	stateID, err := dbs.Database.GetStateID(state)
+	if err != nil {
+		return &DBServiceError{Msg: "database error", Err: err}
+	}
+
+	err = dbs.Database.UpdateAuthorisationState(authID, stateID)
+	if err != nil {
+		return &DBServiceError{Msg: "database error", Err: err}
+	}
+
+	return nil
 }
