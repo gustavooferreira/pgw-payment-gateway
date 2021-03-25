@@ -10,7 +10,6 @@ import (
 // Repository represents a database holding the data
 type Repository interface {
 	HealthCheck() error
-	Close() error
 	CurrencyExists(currency string) (bool, error)
 	AddAuthorisation(auth entities.Authorisation) error
 	AddTransaction(authID string, transaction entities.Transaction) error

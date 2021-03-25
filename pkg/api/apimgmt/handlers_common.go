@@ -12,6 +12,7 @@ func (s *Server) Healthcheck(c *gin.Context) {
 	if err != nil {
 		s.Logger.Error(fmt.Sprintf("database health check error: %s", err.Error()))
 		c.JSON(500, gin.H{"status": "FAIL"})
+        return
 	}
 
 	c.JSON(200, gin.H{"status": "OK"})
